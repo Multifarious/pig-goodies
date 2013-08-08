@@ -5,3 +5,7 @@
 *.war
 *.ear
 target
+.idea
+*.iml
+.pigunit-input-overriden.txt.crc
+pigunit-input-overriden.txt
