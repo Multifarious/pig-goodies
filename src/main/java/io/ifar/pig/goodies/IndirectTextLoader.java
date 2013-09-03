@@ -7,8 +7,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.builtin.TextLoader;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 /**
@@ -20,7 +23,12 @@ public class IndirectTextLoader extends TextLoader{
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+        FileSystem fs;
+        try {
+            fs = FileSystem.get(new URI(location), job.getConfiguration());
+        } catch (URISyntaxException use) {
+            throw new RuntimeException(use);
+        }
         Path locationPath = new Path(location);
         FSDataInputStream stream = fs.open(locationPath);
         List<String> files = IOUtils.readLines(stream);
