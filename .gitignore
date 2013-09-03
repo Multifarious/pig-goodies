@@ -9,3 +9,4 @@ target
 *.iml
 .pigunit-input-overriden.txt.crc
 pigunit-input-overriden.txt
+.DS_Store
