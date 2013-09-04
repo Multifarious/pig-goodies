@@ -33,12 +33,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.2.5</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.pig</groupId>
             <artifactId>pigunit</artifactId>
             <version>0.11.1</version>
@@ -133,24 +127,6 @@
                         </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>
-            <!-- need to package in HTTP client for the URI handling -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>complete</shadedClassifierName>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <!-- buildnumber-maven-plugin will generate ${buildNumber} from git SHA (requires scm be configured) -->
             <plugin>

@@ -74,9 +74,9 @@ public class TestExtractQueryParams extends BasePigUnitTest {
     }
 
     @Test
-    public void testReturnFirst() throws Exception {
+    public void testReturnLast() throws Exception {
         assertEquals(
-                ImmutableMap.of("foo","baz"),
+                ImmutableMap.of("foo","42"),
                 f.exec(tupleFactory.newTuple("?foo=baz&foo=42")));
     }
 

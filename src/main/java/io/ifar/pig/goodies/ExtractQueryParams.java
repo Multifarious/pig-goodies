@@ -1,7 +1,5 @@
 package io.ifar.pig.goodies;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -9,10 +7,11 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Pig UDF which takes an input String, parses as a URL query, and returns a Map of the key-value pairs.
@@ -36,14 +35,15 @@ import java.util.Map;
  * The resulting Map is placed in a field with the same name as its input field. (Or, named "query" if no input schema available.)
  */
 public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
-    private final Charset charset;
+    private final String encoding;
 
+    private static final Pattern HTTP_OR_HTTPS = Pattern.compile("https?://");
 
     /**
      * Treat %xx input as UTF-8 encoded.
      */
     public ExtractQueryParams() {
-        this.charset = Charset.forName("UTF-8");
+        this("utf-8");
     }
 
     /**
@@ -51,7 +51,9 @@ public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
      * @param encoding used when interpreting %xx input
      */
     public ExtractQueryParams(String encoding) {
-        this.charset = Charset.forName(encoding);
+        // smoke check the encoding
+        Charset.forName(encoding);
+        this.encoding = encoding;
     }
 
     @Override
@@ -67,26 +69,23 @@ public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
         int hashIdx = inputString.indexOf('#');
         String trimmed = inputString.substring(questIdx + 1, hashIdx >= 0 ? hashIdx : inputString.length());
 
-        List<NameValuePair> pairs = URLEncodedUtils.parse(trimmed, charset);
-        if (pairs.size() == 1) {
-            //distinguish between URL without query params and a bare key
-            if (pairs.get(0).getValue() == null &&
-                    (questIdx >= 1 || hashIdx >= 0 || inputString.indexOf('/') >= 0 || inputString.indexOf(':') >= 0) )
-            {
-                //Looks like a URL, not a bare key
-                return new HashMap<>(0);
+        Map<String,String> out = new HashMap<>();
+
+        if (questIdx == -1 && HTTP_OR_HTTPS.matcher(inputString).find()) {
+            return out;
+        }
+        String[] splits = trimmed.split("&");
+        for (String split : splits) {
+            String[] pieces = split.split("=",2);
+            if (pieces.length > 1) {
+                out.put(URLDecoder.decode(pieces[0],encoding),
+                        URLDecoder.decode(pieces[1],encoding));
+            } else {
+                out.put(URLDecoder.decode(pieces[0],encoding),
+                        null);
             }
         }
-        Map<String,String> result = new HashMap<>(pairs.size());
-        for (NameValuePair pair : pairs) {
-            String existing = result.put(pair.getName(), pair.getValue());
-            if (existing != null) {
-                //oops, already had a value. Put it back. Handle this way rather than checking beforehand on assumption
-                //that dupes are infrequent
-                result.put(pair.getName(), existing);
-            }
-        }
-        return result;
+        return out;
     }
 
     @Override
