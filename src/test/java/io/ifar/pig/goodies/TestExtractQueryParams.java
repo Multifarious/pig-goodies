@@ -18,10 +18,12 @@ public class TestExtractQueryParams extends BasePigUnitTest {
 
     private ExtractQueryParams f;
     private TupleFactory tupleFactory;
+    private ExtractQueryParams g;
 
     @Before
     public void setup() {
         f = new ExtractQueryParams("UTF-8");
+        g = new ExtractQueryParams("UTF-8","true");
         tupleFactory = TupleFactory.getInstance();
     }
 
@@ -122,6 +124,13 @@ public class TestExtractQueryParams extends BasePigUnitTest {
                 ImmutableMap.<String,String>of("\u03B1","\u03B2"), //alpha, beta
                 fGreek.exec(tupleFactory.newTuple("?%E1=%E2")) //see https://en.wikipedia.org/wiki/ISO/IEC_8859-7
         );
+    }
+
+    @Test
+    public void testDoubleEncoded() throws Exception {
+        assertEquals(
+                ImmutableMap.of("foo[]? bar", "baz=baz&baz"),
+                g.exec(tupleFactory.newTuple("?foo%255B%255D%253F%2520bar=baz%253Dbaz%2526baz")));
     }
 
     @Override

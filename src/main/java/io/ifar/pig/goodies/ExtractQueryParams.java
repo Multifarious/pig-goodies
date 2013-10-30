@@ -9,6 +9,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -37,7 +38,10 @@ import java.util.regex.Pattern;
 public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
     private final String encoding;
 
+    private static final Pattern DOUBLE_ENCODED_HEX = Pattern.compile("%25\\p{XDigit}{2}");
+
     private static final Pattern HTTP_OR_HTTPS = Pattern.compile("https?://");
+    private final boolean shouldDetectDoubleEncoding;
 
     /**
      * Treat %xx input as UTF-8 encoded.
@@ -51,9 +55,14 @@ public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
      * @param encoding used when interpreting %xx input
      */
     public ExtractQueryParams(String encoding) {
+        this(encoding,"false");
+    }
+
+    public ExtractQueryParams(String encoding, String shouldDetectDoubleEncoding) {
         // smoke check the encoding
         Charset.forName(encoding);
         this.encoding = encoding;
+        this.shouldDetectDoubleEncoding = Boolean.valueOf(shouldDetectDoubleEncoding);
     }
 
     @Override
@@ -64,6 +73,13 @@ public class ExtractQueryParams extends EvalFunc<Map<String,String>> {
             throw new IOException("Expected single input String but got tuple of size " + input.size());
 
         String inputString = input.get(0).toString();
+        if ("-".equals(inputString)) {
+            return Collections.emptyMap();
+        }
+
+        if (shouldDetectDoubleEncoding && DOUBLE_ENCODED_HEX.matcher(inputString).find()) {
+            inputString = URLDecoder.decode(inputString,encoding);
+        }
         //trim anything preceding the query string and any # fragment identifiers afterwards
         int questIdx = inputString.indexOf('?');
         int hashIdx = inputString.indexOf('#');
